@@ -17,6 +17,7 @@ def gde(excel_data, fr):
     """
 
     resultados = []
+    sum_fr = 0
     print('---'*50)
     # Iterar sobre os elementos e verificar se as colunas ('Fi', 'Fp') estão presentes
     for elemento in excel_data.columns.get_level_values(0).unique():
@@ -45,7 +46,10 @@ def gde(excel_data, fr):
             gde_max = max(gde_values)
             gde_total = sum(gde_values)
             gdf = gde_max * sqrt(1 + gde_total - gde_max) / gde_total
+            fr_gdf = fr * gdf
 
+            sum_fr += fr
+            print(f'elemento: {elemento}, sum_fr: {sum_fr}')
             print(f'gde: {gde}, gde_values: {gde_values}, gde_max: {gde_max}, gde_total: {gde_total}, gdf: {gdf}, fr: {fr}')
 
             resultados.append({
@@ -53,12 +57,13 @@ def gde(excel_data, fr):
                 "sum(d)": d_total,
                 "d_max": d_max,
                 "gde": gde,
-                "gdf": fr * gdf
+                "gdf": fr_gdf
             })
+
 
     result_df = pd.DataFrame(resultados)
     result_df.reset_index(drop=True, inplace=True)
-    return result_df
+    return result_df, sum_fr, fr_gdf
 
 # Título da aplicação
 st.title("GDA")
@@ -106,18 +111,25 @@ if uploaded_files:
     # Botão para aplicar o cálculo
     if st.button("Calcular"):
         resultados_finais = []  # Inicializar a lista de resultados
+        sum_fr_total = 0
+        sum_fr_gdf = 0
 
         st.title("Resultados")
         for file_name, df in planilhas.items():
             fr = fr_selecionados[file_name]
-            st.subheader(f"{file_name} \n$F_r$ = {fr}")
+            st.subheader(f"{file_name}")
 
             # Aplicar a função GDA
-            resultado = gde(df, fr)
+            resultado, sum_fr, fr_gdf = gde(df, fr)
             st.table(resultado)
+            sum_fr_total += sum_fr
+            sum_fr_gdf += fr_gdf
             # Adicionar o resultado à lista para permitir o download
             resultados_finais.append((file_name, resultado))
-
+        st.write('---'*50)
+        st.write(f'Somatório total dos $F_r$: {sum_fr_total}')
+        st.write(f'Somatório total dos $F_r * gdf$: {sum_fr_gdf}')
+        st.write(f'GD: {sum_fr_gdf/sum_fr_total}')
         # Permitir download dos resultados
         with st.expander("Baixar todos os resultados"):
             for file_name, resultado in resultados_finais:
